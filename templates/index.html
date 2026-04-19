@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutor DFI | Unisabana</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .chat-bubble p { margin-bottom: 0.5rem; }
+    .chat-bubble ul { list-style: disc; padding-left: 1.2rem; margin-bottom: 0.5rem; }
+    .chat-bubble ol { list-style: decimal; padding-left: 1.2rem; margin-bottom: 0.5rem; }
+    .chat-bubble strong { font-weight: 600; }
+    .chat-bubble table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; font-size: 0.82rem; }
+    .chat-bubble th, .chat-bubble td { border: 1px solid #cbd5e1; padding: 4px 8px; text-align: left; }
+    .chat-bubble th { background: #e2e8f0; }
+    .typing-dot { animation: blink 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+    .caso-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .caso-card { transition: all .18s ease; }
+    .caso-card.selected { border-color: #003366; background: #f0f5ff; }
+    #messages { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-[#003366] text-white shadow-md flex-shrink-0">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div>
+        <p class="text-xs text-blue-200 uppercase tracking-widest">Universidad de la Sabana · Gerencia Logística</p>
+        <h1 class="text-lg font-bold">Tutor DFI — Distribución Física Internacional</h1>
+      </div>
+      <span id="status-dot" class="hidden text-xs bg-green-500 text-white px-2 py-1 rounded-full">● En línea</span>
+    </div>
+  </header>
+
+  <!-- ══════════ PANTALLA 1: NOMBRE ══════════ -->
+  <div id="screen-name" class="flex-1 flex items-center justify-center p-6">
+    <div class="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+      <div class="text-5xl mb-4">🎓</div>
+      <h2 class="text-xl font-bold text-slate-800 mb-2">Bienvenido al Tutor Inteligente</h2>
+      <p class="text-slate-500 text-sm mb-6">
+        Debate tus propuestas logísticas con un tutor que evalúa factibilidad técnica,
+        cumplimiento normativo y coherencia estratégica — sin darte la respuesta directamente.
+      </p>
+      <input id="inp-name" type="text" placeholder="Escribe tu nombre completo"
+        class="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        maxlength="60" />
+      <button onclick="goToCasos()"
+        class="w-full bg-[#003366] text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-800 transition">
+        Continuar →
+      </button>
+      <p class="text-xs text-slate-400 mt-4">Prof. Paula Alejandra Pinzon Arias</p>
+    </div>
+  </div>
+
+  <!-- ══════════ PANTALLA 2: SELECCIÓN DE CASO ══════════ -->
+  <div id="screen-casos" class="hidden flex-1 p-4 sm:p-8 overflow-y-auto">
+    <div class="max-w-4xl mx-auto">
+      <div class="mb-6 text-center">
+        <p class="text-slate-500 text-sm" id="label-bienvenida"></p>
+        <h2 class="text-2xl font-bold text-slate-800 mt-1">¿Cuál es tu caso?</h2>
+        <p class="text-slate-400 text-sm mt-1">Selecciona el caso que te asignó el profesor</p>
+      </div>
+      <div id="casos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Cards generadas por JS -->
+      </div>
+      <div class="mt-6 text-center">
+        <button id="btn-iniciar" onclick="startChat()" disabled
+          class="bg-[#003366] text-white rounded-xl px-8 py-3 font-semibold opacity-40 cursor-not-allowed transition">
+          Iniciar tutoría →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PANTALLA 3: CHAT ══════════ -->
+  <div id="screen-chat" class="hidden flex-1 flex flex-col max-w-4xl mx-auto w-full px-2 sm:px-4 pb-4" style="min-height:0">
+
+    <!-- Barra info -->
+    <div class="bg-blue-50 border border-blue-100 rounded-xl mt-3 px-4 py-2 flex items-center justify-between flex-shrink-0">
+      <div>
+        <span class="text-sm text-blue-800 font-semibold" id="chat-caso-titulo"></span>
+        <span class="text-xs text-blue-500 ml-2" id="chat-alumno-label"></span>
+      </div>
+      <button onclick="requestSummary()"
+        class="text-xs bg-[#003366] text-white px-3 py-1.5 rounded-lg hover:bg-blue-800 transition">
+        📋 Resumen final
+      </button>
+    </div>
+
+    <!-- Mensajes -->
+    <div id="messages" class="flex-1 overflow-y-auto mt-3 space-y-4 pr-1"></div>
+
+    <!-- Typing indicator -->
+    <div id="typing" class="hidden flex items-start gap-3 mt-2 flex-shrink-0">
+      <div class="w-8 h-8 rounded-full bg-[#003366] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">T</div>
+      <div class="bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+        <span class="typing-dot text-slate-400 text-xl">●</span>
+        <span class="typing-dot text-slate-400 text-xl">●</span>
+        <span class="typing-dot text-slate-400 text-xl">●</span>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="mt-3 bg-white rounded-2xl shadow-md border border-slate-200 flex items-end gap-2 px-4 py-3 flex-shrink-0">
+      <textarea id="user-input" rows="2"
+        placeholder="Presenta tu propuesta o argumento… (Enter para enviar, Shift+Enter nueva línea)"
+        class="flex-1 resize-none text-sm text-slate-800 focus:outline-none placeholder-slate-400"
+        style="max-height:120px"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()"
+        class="bg-[#003366] text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-blue-800 transition flex-shrink-0">
+        Enviar
+      </button>
+    </div>
+
+    <!-- Chips -->
+    <div id="chips" class="mt-2 flex flex-wrap gap-2 flex-shrink-0">
+      <span class="text-xs text-slate-400 self-center">Empezar con:</span>
+      <button onclick="chip('Mi propuesta de empaque primario es ')" class="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600">📦 Empaque primario</button>
+      <button onclick="chip('Para el embalaje y estiba propongo ')" class="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600">🪵 Embalaje y pallet</button>
+      <button onclick="chip('Para el transporte seleccioné ')" class="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600">🚢 Modo de transporte</button>
+      <button onclick="chip('El incoterm que usaría es ')" class="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600">📄 Incoterm</button>
+      <button onclick="chip('Los riesgos que identifiqué son ')" class="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600">⚠️ Riesgos</button>
+      <button onclick="chip('La documentación que necesito es ')" class="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600">📋 Documentación</button>
+    </div>
+  </div>
+
+  <script>
+    let studentName = "";
+    let selectedCasoId = null;
+    let selectedCasoNombre = "";
+    let conversationHistory = [];
+    let chatStarted = false;
+
+    // ── Pantalla 1 → 2 ──────────────────────────────────────────────────────
+    document.getElementById("inp-name").addEventListener("keydown", e => { if(e.key==="Enter") goToCasos(); });
+
+    async function goToCasos() {
+      const name = document.getElementById("inp-name").value.trim();
+      if (!name) { document.getElementById("inp-name").classList.add("border-red-400"); return; }
+      studentName = name;
+      document.getElementById("label-bienvenida").textContent = "Hola, " + studentName + " 👋";
+      document.getElementById("screen-name").classList.add("hidden");
+      document.getElementById("screen-casos").classList.remove("hidden");
+      document.getElementById("status-dot").classList.remove("hidden");
+      await loadCasos();
+    }
+
+    async function loadCasos() {
+      try {
+        const res = await fetch("/casos");
+        const casos = await res.json();
+        const grid = document.getElementById("casos-grid");
+        grid.innerHTML = "";
+        casos.forEach(c => {
+          const card = document.createElement("div");
+          card.className = "caso-card bg-white border-2 border-slate-200 rounded-2xl p-5 cursor-pointer";
+          card.setAttribute("data-id", c.id);
+          card.innerHTML = `
+            <div class="text-3xl mb-2">${c.emoji}</div>
+            <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1">${c.titulo}</p>
+            <h3 class="font-bold text-slate-800 text-sm mb-2">${c.nombre}</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">${c.resumen}</p>
+          `;
+          card.addEventListener("click", () => selectCaso(c.id, c.titulo + ": " + c.nombre, card));
+          grid.appendChild(card);
+        });
+      } catch(e) {
+        document.getElementById("casos-grid").innerHTML = '<p class="text-red-500 text-sm">Error cargando casos. Verifica que el servidor esté corriendo.</p>';
+      }
+    }
+
+    function selectCaso(id, nombre, cardEl) {
+      document.querySelectorAll(".caso-card").forEach(c => c.classList.remove("selected"));
+      cardEl.classList.add("selected");
+      selectedCasoId = id;
+      selectedCasoNombre = nombre;
+      const btn = document.getElementById("btn-iniciar");
+      btn.disabled = false;
+      btn.classList.remove("opacity-40", "cursor-not-allowed");
+    }
+
+    // ── Pantalla 2 → 3 ──────────────────────────────────────────────────────
+    function startChat() {
+      if (!selectedCasoId) return;
+      document.getElementById("screen-casos").classList.add("hidden");
+      document.getElementById("screen-chat").classList.remove("hidden");
+      document.getElementById("screen-chat").classList.add("flex");
+      document.getElementById("chat-caso-titulo").textContent = selectedCasoNombre;
+      document.getElementById("chat-alumno-label").textContent = "· " + studentName;
+      if (!chatStarted) {
+        chatStarted = true;
+        sendToTutor("Hola, mi nombre es " + studentName + " y voy a trabajar el " + selectedCasoNombre + ". Quiero iniciar la sesión de tutoría.");
+      }
+    }
+
+    // ── Chat ────────────────────────────────────────────────────────────────
+    function requestSummary() {
+      document.getElementById("user-input").value = "resumen final";
+      sendMessage();
+    }
+
+    function chip(text) {
+      document.getElementById("user-input").value = text;
+      document.getElementById("user-input").focus();
+    }
+
+    function handleKey(e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    }
+
+    function autoResize(el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 120) + "px";
+    }
+
+    function appendMessage(role, content) {
+      const container = document.getElementById("messages");
+      const isUser = role === "user";
+      const div = document.createElement("div");
+      div.className = "flex items-start gap-3 " + (isUser ? "flex-row-reverse" : "");
+      const avatar = document.createElement("div");
+      avatar.className = "w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 " +
+        (isUser ? "bg-slate-500" : "bg-[#003366]");
+      avatar.textContent = isUser ? studentName.charAt(0).toUpperCase() : "T";
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble rounded-2xl px-4 py-3 shadow-sm text-sm " +
+        (isUser ? "bg-[#003366] text-white rounded-tr-none max-w-[80%]"
+                : "bg-white text-slate-800 rounded-tl-none border border-slate-100 max-w-[85%]");
+      bubble.innerHTML = isUser ? content.replace(/\n/g,'<br>') : marked.parse(content);
+      div.appendChild(avatar);
+      div.appendChild(bubble);
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendToTutor(userText) {
+      conversationHistory.push({ role: "user", content: userText });
+      document.getElementById("typing").classList.remove("hidden");
+      document.getElementById("send-btn").disabled = true;
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: conversationHistory, caso_id: selectedCasoId }),
+        });
+        const data = await res.json();
+        const reply = data.response;
+        conversationHistory.push({ role: "assistant", content: reply });
+        document.getElementById("typing").classList.add("hidden");
+        appendMessage("assistant", reply);
+      } catch(err) {
+        document.getElementById("typing").classList.add("hidden");
+        appendMessage("assistant", "⚠️ Error de conexión. Verifica que el servidor esté corriendo y vuelve a intentarlo.");
+      }
+      document.getElementById("send-btn").disabled = false;
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("user-input");
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage("user", text);
+      input.value = "";
+      input.style.height = "auto";
+      if (conversationHistory.length > 1) document.getElementById("chips").classList.add("hidden");
+      sendToTutor(text);
+    }
+  </script>
+</body>
+</html>
