@@ -38,8 +38,26 @@
     </div>
   </header>
 
+  <!-- ══════════ PANTALLA 0: CÓDIGO DE ACCESO ══════════ -->
+  <div id="screen-code" class="flex-1 flex items-center justify-center p-6">
+    <div class="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+      <div class="text-5xl mb-4">🔐</div>
+      <h2 class="text-xl font-bold text-slate-800 mb-2">Código de acceso</h2>
+      <p class="text-slate-500 text-sm mb-6">Ingresa el código que te proporcionó tu profesora para continuar.</p>
+      <input id="inp-code" type="password" placeholder="Código de acceso"
+        class="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center tracking-widest text-lg"
+        maxlength="10" />
+      <p id="code-error" class="text-red-500 text-xs mb-3 hidden">Código incorrecto. Intenta de nuevo.</p>
+      <button onclick="checkCode()"
+        class="w-full bg-[#003366] text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-800 transition mt-2">
+        Acceder →
+      </button>
+      <p class="text-xs text-slate-400 mt-4">Prof. Paula Alejandra Pinzon Arias</p>
+    </div>
+  </div>
+
   <!-- ══════════ PANTALLA 1: NOMBRE ══════════ -->
-  <div id="screen-name" class="flex-1 flex items-center justify-center p-6">
+  <div id="screen-name" class="hidden flex-1 flex items-center justify-center p-6">
     <div class="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
       <div class="text-5xl mb-4">🎓</div>
       <h2 class="text-xl font-bold text-slate-800 mb-2">Bienvenido al Tutor Inteligente</h2>
@@ -132,11 +150,29 @@
   </div>
 
   <script>
+    const ACCESS_CODE = "8521";
     let studentName = "";
     let selectedCasoId = null;
     let selectedCasoNombre = "";
     let conversationHistory = [];
     let chatStarted = false;
+
+    // ── Pantalla 0 → 1 ──────────────────────────────────────────────────────
+    document.getElementById("inp-code").addEventListener("keydown", e => { if(e.key==="Enter") checkCode(); });
+
+    function checkCode() {
+      const val = document.getElementById("inp-code").value.trim();
+      const err = document.getElementById("code-error");
+      if (val === ACCESS_CODE) {
+        document.getElementById("screen-code").classList.add("hidden");
+        document.getElementById("screen-name").classList.remove("hidden");
+        err.classList.add("hidden");
+      } else {
+        document.getElementById("inp-code").classList.add("border-red-400");
+        err.classList.remove("hidden");
+        document.getElementById("inp-code").value = "";
+      }
+    }
 
     // ── Pantalla 1 → 2 ──────────────────────────────────────────────────────
     document.getElementById("inp-name").addEventListener("keydown", e => { if(e.key==="Enter") goToCasos(); });
